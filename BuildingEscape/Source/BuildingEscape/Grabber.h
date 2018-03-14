@@ -5,7 +5,10 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "DrawDebugHelpers.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "Grabber.generated.h"
+
+
 
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -29,5 +32,7 @@ private:
 	
 	// How far ahead of the player can we reach in centimeters
 	float Reach = 100.f;
+
+	UPhysicsHandleComponent* PhysicsHandle = nullptr;
 	
 };
