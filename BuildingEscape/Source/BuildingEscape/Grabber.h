@@ -5,7 +5,11 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Components/InputComponent.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
+
+
+
 #include "Grabber.generated.h"
 
 
@@ -33,6 +37,9 @@ private:
 	// How far ahead of the player can we reach in centimeters
 	float Reach = 100.f;
 
+	UInputComponent* InputComponent = nullptr;
 	UPhysicsHandleComponent* PhysicsHandle = nullptr;
 	
+	// Ray-cast and grab what's in reach
+	void Grab();
 };
