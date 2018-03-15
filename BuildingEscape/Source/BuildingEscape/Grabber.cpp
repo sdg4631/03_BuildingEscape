@@ -3,6 +3,7 @@
 #include "Grabber.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
+#include "Components/PrimitiveComponent.h"
 
 #define OUT
 
@@ -12,8 +13,6 @@ UGrabber::UGrabber()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 
@@ -21,21 +20,29 @@ UGrabber::UGrabber()
 void UGrabber::BeginPlay()
 {
 	Super::BeginPlay();
+	FindPhysicsHandleComponent();
+	SetupInputComponent();
+}
 
-	UE_LOG(LogTemp, Warning, TEXT("Grabber reporting for duty!"));
-	
+void UGrabber::FindPhysicsHandleComponent()
+{
 	/// Look for attached Physics Handle
 	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
 	if (PhysicsHandle)
 	{
-		// physics handle is found
+
+		UE_LOG(LogTemp, Error, TEXT("Physics handle component is found on: %s"), *GetOwner()->GetName());
+
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("No physics handle component is found on: %s"), *GetOwner()->GetName());
 	}
+}
 
-	/// Look for attached input component
+void UGrabber::SetupInputComponent()
+{
+	/// Look for attached input component (only appears at runtime)
 	InputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
 	if (InputComponent)
 	{
@@ -50,15 +57,41 @@ void UGrabber::BeginPlay()
 	}
 }
 
+
+
 void UGrabber::Grab() 
 {
 	UE_LOG(LogTemp, Warning, TEXT("Grab pressed!"))
+
+	/// LINE TRACE and see if we reach any actors with physics body collision channel set
+	auto HitResult = GetFirstPhysicsBodyInReach();
+	auto ComponentToGrab = HitResult.GetComponent();
+	auto ActorHit = HitResult.GetActor();
+
+	/// If we hit something, then attach a physics handle
+	if (ActorHit)
+	{
+		// attach physics handle
+		PhysicsHandle->GrabComponent
+		(
+			ComponentToGrab,
+			NAME_None,
+			ComponentToGrab->GetOwner()->GetActorLocation(),
+			true //allow rotation
+		);
+	}
 }
 
 void UGrabber::Release()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Grab released!"))
+
+	// release physics handle
+	PhysicsHandle->ReleaseComponent();
+
 }
+
+
 
 // Called every frame
 void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -74,7 +107,28 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 		OUT PlayerViewPointRotation
 	);
 
-	//// TODO log out to test
+	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
+
+	// if the physics handle is attached
+	if (PhysicsHandle->GrabbedComponent)
+	{
+		//move the object that were holding each frame
+		PhysicsHandle->SetTargetLocation(LineTraceEnd);
+	}
+}	
+
+FHitResult UGrabber::GetFirstPhysicsBodyInReach() const
+{
+	// Get player viewpoint this tick
+	FVector PlayerViewPointLocation;
+	FRotator PlayerViewPointRotation;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint
+	(
+		OUT PlayerViewPointLocation,
+		OUT PlayerViewPointRotation
+	);
+
+	//// log out to test
 	//UE_LOG(LogTemp, Warning, TEXT("Location: %s, Position: %s"), 
 	//	*PlayerViewPointLocation.ToString(),
 	//	*PlayerViewPointRotation.ToString()
@@ -82,26 +136,26 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 
 	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
 
-	/// Draw a red trace in the world to visualize
-	DrawDebugLine
-	(
-		GetWorld(),
-		PlayerViewPointLocation,
-		LineTraceEnd,
-		FColor(255, 0, 0),
-		false,
-		0.f,
-		0.f,
-		10.f
-	);
-	
+	///// Draw a red trace in the world to visualize
+	//DrawDebugLine
+	//(
+	//	GetWorld(),
+	//	PlayerViewPointLocation,
+	//	LineTraceEnd,
+	//	FColor(255, 0, 0),
+	//	false,
+	//	0.f,
+	//	0.f,
+	//	10.f
+	//);
+
 	/// setup query parameters
 	FCollisionQueryParams TraceParameters(FName(TEXT("")), false, GetOwner());
-	
+
 	/// Line Trace (Ray-cast) out to reach distance
 	FHitResult Hit;
 	GetWorld()->LineTraceSingleByObjectType
-	(	
+	(
 		OUT Hit,
 		PlayerViewPointLocation,
 		LineTraceEnd,
@@ -115,6 +169,5 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Line trace hit: %s"), *(ActorHit->GetName()))
 	}
-}	
-
-
+	return Hit;
+}
