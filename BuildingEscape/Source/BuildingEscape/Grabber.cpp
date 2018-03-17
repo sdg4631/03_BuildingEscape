@@ -74,6 +74,7 @@ void UGrabber::Grab()
 	auto ComponentToGrab = HitResult.GetComponent(); // gets the mesh in our case
 	auto ActorHit = HitResult.GetActor();
 
+	if (!PhysicsHandle) { return; }
 	/// If we hit something, then attach a physics handle
 	if (ActorHit)
 	{
@@ -92,6 +93,7 @@ void UGrabber::Release()
 {
 	/*UE_LOG(LogTemp, Warning, TEXT("Grab released!"))*/
 
+	if (!PhysicsHandle) { return; }
 	// release physics handle
 	PhysicsHandle->ReleaseComponent();
 }
