@@ -57,4 +57,6 @@ private:
 
 	FTwoVectors GetLineTracePoints() const;
 
+	
+
 };
